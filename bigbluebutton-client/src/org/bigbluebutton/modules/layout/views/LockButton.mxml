@@ -27,9 +27,6 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 		   click="onClick(event)"
 		   enabled="{UserManager.getInstance().getConference().amIModerator()}">
 	
-	<mate:Listener type="{LayoutEvent.REMOTE_LOCK_LAYOUT_EVENT}" method="onLockLayoutEvent" />
-	<mate:Listener type="{LayoutEvent.REMOTE_UNLOCK_LAYOUT_EVENT}" method="onUnlockLayoutEvent" />
-
 	<mx:Script>
 		<![CDATA[
 			import com.asfusion.mate.events.Dispatcher;
@@ -41,6 +38,10 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 			import org.bigbluebutton.core.managers.UserManager;
 			import org.bigbluebutton.util.i18n.ResourceUtil;
 			import org.bigbluebutton.modules.layout.events.LayoutEvent;
+			
+			import org.bigbluebutton.main.events.BBBEvent;
+			import org.bigbluebutton.main.events.ShortcutEvent;
+			import flash.events.FocusEvent;
 
 			private var _dispatcher:Dispatcher = new Dispatcher();
 			private var _images:Images = new Images();
@@ -48,26 +49,30 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 			[Bindable] private var icon_unlocked:Class = _images.unlocked;
 			
 			private function init():void {
-			}
-			
-			private function onClick(e:Event):void {
-				if (!this.selected) {
-					_dispatcher.dispatchEvent(new LayoutEvent(LayoutEvent.LOCK_LAYOUT_EVENT));
-				} else {
-					_dispatcher.dispatchEvent(new LayoutEvent(LayoutEvent.UNLOCK_LAYOUT_EVENT));
+				if (!UserManager.getInstance().getConference().amIModerator()) {
+					this.visible = false;
 				}
 			}
 			
+			private function onClick(e:Event):void {
+				//_dispatcher.dispatchEvent(new LayoutEvent(LayoutEvent.SYNC_LAYOUT_EVENT));
+			}
+			
 			private function onLockLayoutEvent(e:Event):void {
+				if (!UserManager.getInstance().getConference().amIModerator()) {
+					this.visible = true;
+				}
 				this.selected = true;
 				this.setStyle("icon", icon_locked);
 			}
 			
 			private function onUnlockLayoutEvent(e:Event):void {
+				if (!UserManager.getInstance().getConference().amIModerator()) {
+					this.visible = false;
+				}
 				this.selected = false;
 				this.setStyle("icon", icon_unlocked);
 			}
-			
 		]]>
 	</mx:Script>
 </views:LayoutButton>

@@ -415,7 +415,88 @@
         swfObj.deletePresentationRequest(presentationID);
       }     
     }
-            
+
+    /**
+     *
+     */
+     
+    BBB.webRTCCallStarted = function(inEchoTest) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallStarted(inEchoTest);
+      }
+    }
+    
+    BBB.webRTCCallConnecting = function(inEchoTest) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallConnecting(inEchoTest);
+      }
+    }
+     
+    BBB.webRTCCallEnded = function(inEchoTest) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallEnded(inEchoTest);
+      }
+    }
+
+    BBB.webRTCCallFailed = function(inEchoTest, errorcode, cause) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallFailed(inEchoTest, errorcode, cause);
+      }
+    }
+
+    BBB.webRTCCallWaitingForICE = function(inEchoTest) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallWaitingForICE(inEchoTest);
+      }
+    }
+    
+    BBB.webRTCCallTransferring = function(inEchoTest) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallTransferring(inEchoTest);
+      }
+    }
+
+    BBB.webRTCCallProgressCallback = function(progress) {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCCallProgressCallback(progress);
+      }
+    }
+
+    BBB.webRTCMediaRequest = function() {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCMediaRequest();
+      }
+    }
+
+    BBB.webRTCMediaSuccess = function() {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCMediaSuccess();
+      }
+    }
+    
+    BBB.webRTCMediaFail = function() {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.webRTCMediaFail();
+      }
+    }
+    
+    BBB.javaAppletLaunched = function() {
+      var swfObj = getSwfObj();
+      if (swfObj) {
+        swfObj.javaAppletLaunched();
+      }
+    }
+    
     // Third-party JS apps should use this to query if the BBB SWF file is ready to handle calls.
     BBB.isSwfClientReady = function() {
       return swfReady;
@@ -447,7 +528,7 @@
         
         for (var i = 0; i < listeners[eventName].length; i++) {
             if (listeners[eventName][i] === handler) {
-                listeners.splice(i, 1);
+                listeners[eventName].splice(i, 1);
                 break;
             }
         }

@@ -14,7 +14,7 @@ package org.bigbluebutton.main.model
 		private static var audio:Boolean = true;
 		private static var generalResource:Array;
 		
-		public static function initialize() {
+		public static function initialize():void {
 			var vxml:XML;
 			
 			vxml = BBB.getConfigForModule("UsersModule");
@@ -88,7 +88,10 @@ package org.bigbluebutton.main.model
 				generalResource.push('bbb.shortcutkey.focus.voting');
 			}
 			
-			if (audio){generalResource.push('bbb.shortcutkey.share.microphone');}
+			if (audio){
+				generalResource.push('bbb.shortcutkey.share.microphone');
+				generalResource.push('bbb.shortcutkey.share.pauseRemoteStream');
+			}
 			if (deskshare){generalResource.push('bbb.shortcutkey.share.desktop');}
 			if (webcam){generalResource.push('bbb.shortcutkey.share.webcam');}
 			if (polling){generalResource.push('bbb.shortcutkey.polling.buttonClick');}

@@ -1,0 +1,130 @@
+@import "variables";
+@import "mixins";
+
+.usericon {
+  font-size: 16px;
+}
+
+#usericons {
+  text-align: right;
+}
+
+.usernameEntry {
+  float:left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 60%;
+  @media @landscape {
+    height: 20px;
+    font-size: 4.5mm;
+  }
+  @media @desktop-portrait {
+    height: 25px;
+    font-size: 4.5mm;
+  }
+  @media @mobile-portrait, @mobile-portrait-with-keyboard {
+    font-size: 4vw;
+  }
+}
+
+#users {
+  @media @landscape {
+    width: 100%;
+    border-left: 0px;
+    border-top: 0px;
+    border-top-right-radius: 0px;
+    background-color: #FAFAFA;
+  }
+  @media @mobile-portrait-with-keyboard, @desktop-portrait, @mobile-portrait {
+    width: 100%;
+    height: 100%;
+    border: none;
+    .linear-gradient(rgb(65,68,77), rgb(58,60,69));
+  }
+  order: 0;
+  height: 100%;
+}
+
+.darkening-in {
+  opacity: 0;
+  animation: darken-in 0.5s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes darken-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
+#user-contents {
+  height: 83vh; /* for the inside scrolling list to utilize as much room as possible, this surrounding window must also take up as much room as possible */
+
+  .userlist {
+    height: calc(~'100% - 29px'); /* height of user contents - user list */
+
+    #content {
+      span:hover {
+        /*background-color: #EEEEEE;*/
+        background: transparent;
+      }
+      margin-top: 10px;
+      &:first-child { margin-top: 0px; }
+      overflow: hidden;
+      width: 100%;
+      @media @mobile-portrait, @mobile-portrait-with-keyboard {
+        /*background: #E6F0FA;*/
+        background: transparent;
+        color: white;
+      }
+    }
+
+    @media @landscape {
+      padding:10px;
+      max-height:83vh;
+    }
+    @media @desktop-portrait {
+      padding-top: 10px;
+      padding-left: 10px;
+      padding-right: 10px;
+      color: white;
+    }
+    @media @desktop-portrait, @mobile-portrait {
+      max-height: 58vw; //for longer userlist a scrollbar appears
+    }
+  }
+}
+
+.userCurrent {
+  font-weight: bold;
+}
+
+.closeUserlistIcon {
+  float: right;
+  margin-right: 5px;
+  @media @mobile-portrait-with-keyboard, @desktop-portrait, @mobile-portrait {
+    display: none;
+  }
+  .closeSettings {
+    @media @landscape {    
+      color: #aaa;
+      font-style: normal;
+      font-size: 30px;
+    }
+  }
+}
+
+// changing mute/unmute icons on hover:
+.muteIcon .ion-ios-mic-outline:hover:before {
+  content: "\f45f";
+}
+.muteIcon .ion-ios-mic:hover:before {
+  content: "\f45f";
+}
+.muteIcon .ion-ios-mic-off:hover:before {
+  content: "\f461";
+}

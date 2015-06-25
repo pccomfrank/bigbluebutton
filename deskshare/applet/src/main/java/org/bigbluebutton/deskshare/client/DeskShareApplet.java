@@ -22,24 +22,27 @@ import javax.imageio.ImageIO;
 import javax.swing.JApplet;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-
 import java.io.IOException;
 import java.net.URL;
 import java.security.*;
 import java.awt.Image;
+import netscape.javascript.*;
 
 public class DeskShareApplet extends JApplet implements ClientListener {
 	public static final String NAME = "DESKSHAREAPPLET: ";
 	
 	private static final long serialVersionUID = 1L;
 
-	String hostValue = "localhost";
+	  String hostValue = "localhost";
+	  String minJreVersion = "1.7.0_51";
     Integer portValue = new Integer(9123);
+	Boolean useTLS = false;
     String roomValue = "85115";
     Integer cWidthValue = new Integer(800);
     Integer cHeightValue = new Integer(600);
     Integer sWidthValue = new Integer(800);
     Integer sHeightValue = new Integer(600);   
+    Double scale = new Double(0.8);
     Boolean qualityValue = false;
     Boolean aspectRatioValue = false;
     Integer xValue = new Integer(0);
@@ -51,24 +54,43 @@ public class DeskShareApplet extends JApplet implements ClientListener {
     Image icon;
     
     public boolean isSharing = false;
-
+    private volatile boolean clientStarted = false;
+    private final static String VERSION_ERROR_MSG = "You have an unsupported Java version.";
+    
     private class DestroyJob implements PrivilegedExceptionAction {
        public Object run() throws Exception {
-		System.out.println("Desktop Sharing Applet Destroy");
-		client.stop();
-               	return null;
+		     System.out.println("Desktop Sharing Applet Destroy");
+		     if (clientStarted) {
+			     client.stop();	
+		     }
+         return null;
        }
     }
     
     @Override
 	public void init() {		
-    	System.out.println("Desktop Sharing Applet Initializing");
-    	
+    System.out.println("Desktop Sharing Applet Initializing");
+    
+    String javaVersion = getParameter("JavaVersion");
+    if (javaVersion != null && javaVersion != "") minJreVersion = javaVersion;
+    
 		hostValue = getParameter("IP");
 		String port = getParameter("PORT");
 		if (port != null) portValue = Integer.parseInt(port);
 		roomValue = getParameter("ROOM");
 
+		String getUseTLS = getParameter("useTLS");
+		if(getUseTLS != null) useTLS = Boolean.parseBoolean(getUseTLS);
+		if(useTLS){
+			//Change port if useTLS is true
+			//Better to place it here than the client if we want to assure that TLS is forced
+			portValue = 443;
+		}
+		
+		String scaleValue = getParameter("SCALE");
+		if (scaleValue != null) scale = Double.parseDouble(scaleValue);
+		
+		
 		String captureFullScreen = getParameter("FULL_SCREEN");
 		if (captureFullScreen != null) fullScreenValue = Boolean.parseBoolean(captureFullScreen);
 		
@@ -82,22 +104,72 @@ public class DeskShareApplet extends JApplet implements ClientListener {
 			icon = ImageIO.read(url);
 		} catch (IOException e) {
 		}
+		
+		// Callback to JavaScript
+		try {
+			JSObject window = JSObject.getWindow(this);
+			window.call("appletStartupCallback", new Object[]{});
+		} catch (JSException jse) {
+			jse.printStackTrace();
+		}
+	}
+	
+	private String getJavaVersionRuntime() {
+		return System.getProperty("java.version");
+	}
+
+    /**
+     * Create the GUI and show it.  For thread safety,
+     * this method should be invoked from the
+     * event-dispatching thread.
+     */
+    private void createAndShowGUI(final String warning) {
+		JOptionPane.showMessageDialog(null,
+				warning,
+		    "Java Version Error",
+		    JOptionPane.ERROR_MESSAGE);
+		stop();
+    }
+    
+	private void displayJavaWarning(final String warning) {	
+		//Schedule a job for the event-dispatching thread:
+        //creating and showing this application's GUI.
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                createAndShowGUI(warning);
+            }
+        });
 	}
 		
 	@Override
 	public void start() {		 	
 		System.out.println("Desktop Sharing Applet Starting");
 		super.start();
-		client = new DeskshareClient.NewBuilder().host(hostValue).port(portValue)
-					.room(roomValue).captureWidth(cWidthValue)
-					.captureHeight(cHeightValue).scaleWidth(sWidthValue).scaleHeight(sHeightValue)
-					.quality(qualityValue).autoScale(0.8)
-					.x(xValue).y(yValue).fullScreen(fullScreenValue).useSVC2(useSVC2Value)
-					.httpTunnel(tunnelValue).trayIcon(icon).enableTrayIconActions(false).build();
-		client.addClientListener(this);
-		client.start();
+		String javaRuntimeVersion = getJavaVersionRuntime();
+		System.out.println("**** JAVA VERSION = [" + javaRuntimeVersion + "]");
+		
+		if (VersionCheckUtil.validateMinJREVersion(javaRuntimeVersion, minJreVersion))
+			allowDesktopSharing();
+		else
+			displayJavaWarning("Unsupported Java version [" + javaRuntimeVersion + "]. Minimum version required [" + minJreVersion + "]");
 	}
-			
+
+	
+	private void allowDesktopSharing() {
+		client = new DeskshareClient.NewBuilder().host(hostValue).port(portValue).useTLS(useTLS)
+				.room(roomValue).captureWidth(cWidthValue)
+				.captureHeight(cHeightValue).scaleWidth(sWidthValue).scaleHeight(sHeightValue)
+				.quality(qualityValue).autoScale(scale)
+				.x(xValue).y(yValue).fullScreen(fullScreenValue).useSVC2(useSVC2Value)
+				.httpTunnel(tunnelValue).trayIcon(icon).enableTrayIconActions(false).build();
+		client.addClientListener(this);
+		
+		clientStarted = true;
+		
+		client.start();		
+	}
+
+	
 	@Override
 	public void destroy() {
 		/* We make this a privileged job.
@@ -121,7 +193,10 @@ public class DeskShareApplet extends JApplet implements ClientListener {
 	@Override
 	public void stop() {
 		System.out.println("Desktop Sharing Applet Stopping");
-		client.stop();	
+		if (clientStarted) {
+			client.stop();	
+		}
+		
 		super.stop();
 	}
 	

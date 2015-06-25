@@ -3,14 +3,14 @@
 <project name="BigBlueButton Client" basedir="." default="clean-build-all" >
     	<property environment="env" />
     	<property name="STATIC_RSL" value="true" />
-	     <property name="DEBUG" value="true" />
+	    <property name="DEBUG" value="true" />
     	<property name="BUILD_ENV" value="DEV" />
     	<property name="FLEX_HOME" value="${env.FLEX_HOME}" />
     	<property name="LOCALE_DIR" value="${FLEX_HOME}/frameworks/locale"/>
     	<property name="BASE_DIR" value="${basedir}" />
       <property name="themeFile" value="BBBDefault.css"/>
 	    <property name="blackTheme" value="BBBBlack.css"/>
-	
+	    <property name="LOCALE" value="en_US" />
 	     <property name="RESOURCES_DIR" value="${BASE_DIR}/resources" />	
 	<property name="PROD_RESOURCES_DIR" value="${RESOURCES_DIR}/prod" />	
 	<property name="SRC_DIR" value="${BASE_DIR}/src" />
@@ -34,7 +34,6 @@
 	<property name="NOTES" value="NotesModule" />
 	<property name="VIDEO" value="VideoconfModule" />
 	<property name="WHITEBOARD" value="WhiteboardModule" />
-	<property name="VIDEO_DOCK" value="VideodockModule" />
 	<property name="POLLING" value="PollingModule" />
 	<property name="LAYOUT" value="LayoutModule" />
 	<property name="USERS" value="UsersModule" />
@@ -68,7 +67,10 @@
 		<echo message="Determining supported locales."/>
 		<foreach target="build-locale" param="supportedlocale">
 			<path id="locales.path.ref">
-		    	<dirset dir="${BASE_DIR}/locale"/>
+		    	<dirset dir="${BASE_DIR}/locale">
+                            <!-- ignore transifex folder -->
+                            <exclude name=".tx"/>
+                        </dirset>
 		  	</path>
 		</foreach>
 	</target>
@@ -134,6 +136,10 @@
            		</else> 
         	</if>       	   
        </sequential>
+	</target>
+	
+	<target name="localize">
+	 <compileLocale locale="${LOCALE}" /> 
 	</target>
 		
 	<macrodef name="compileLocale" description="Compiles the Resource package for the given locale">
@@ -240,8 +246,8 @@
 	<target name="build-deskshare" description="Compile Deskshare Module">
 		<build-module src="${SRC_DIR}" target="${DESKSHARE}" />
 		<echo message="Copying deskshare applet for Deskshare Module" />
-		<copy file="${PROD_RESOURCES_DIR}/bbb-deskshare-applet-unsigned-0.8.1.jar" todir="${OUTPUT_DIR}"/>		
-		<copy file="${PROD_RESOURCES_DIR}/bbb-deskshare-applet-0.8.1.jar" todir="${OUTPUT_DIR}"/>		
+		<copy file="${PROD_RESOURCES_DIR}/bbb-deskshare-applet-unsigned-0.9.0.jar" todir="${OUTPUT_DIR}"/>		
+		<copy file="${PROD_RESOURCES_DIR}/bbb-deskshare-applet-0.9.0.jar" todir="${OUTPUT_DIR}"/>		
 	</target>
 	
 	<target name="build-phone" description="Compile Phone Module">
@@ -257,10 +263,6 @@
 		<build-module src="${SRC_DIR}" target="${VIDEO}" />
 	</target>
 
-	<target name="build-videodock" description="Compile Video Dock Module">
-		<build-module src="${SRC_DIR}" target="${VIDEO_DOCK}" />
-	</target>
-		
 	<target name="build-whiteboard" description="Compile Whiteboard Module">
 		<build-module src="${SRC_DIR}" target="${WHITEBOARD}" />
 	</target>
@@ -281,7 +283,7 @@
 	
 	<!-- just a grouping of modules to compile -->
 	<target name="build-deskshare-phone-video-whiteboard-dyn" 
-			depends="build-deskshare, build-phone, build-video, build-videodock, build-whiteboard, build-notes, build-polling"
+			depends="build-deskshare, build-phone, build-video, build-whiteboard, build-notes, build-polling"
 			description="Compile deskshare, phone, video, whiteboard modules">
 	</target>
 	
@@ -411,10 +413,7 @@
 		</copy>	
 		<copy todir="${OUTPUT_DIR}/lib/" >
 			<fileset dir="${PROD_RESOURCES_DIR}/lib"/>
-		</copy>	
-		<copy todir="${OUTPUT_DIR}/check/" >
-      <fileset dir="${PROD_RESOURCES_DIR}/check"/>
-    </copy> 
+		</copy> 
 		<copy file="${PROD_RESOURCES_DIR}/BigBlueButtonTest.html" todir="${OUTPUT_DIR}" overwrite="true"/>
 		<copy file="${PROD_RESOURCES_DIR}/BigBlueButton.html" todir="${OUTPUT_DIR}" overwrite="true"/>
 		<copy file="${PROD_RESOURCES_DIR}/DeskshareStandalone.html" todir="${OUTPUT_DIR}" overwrite="true"/>
@@ -424,6 +423,7 @@
 		<copy file="${PROD_RESOURCES_DIR}/expressInstall.swf" todir="${OUTPUT_DIR}" overwrite="true"/>	
 		<copy file="${PROD_RESOURCES_DIR}/example-info-data.xml" todir="${OUTPUT_DIR}/conf" overwrite="true"/>
 		<copy file="${PROD_RESOURCES_DIR}/layout.xml" todir="${OUTPUT_DIR}/conf" overwrite="true"/>
+		<copy file="${PROD_RESOURCES_DIR}/profiles.xml" todir="${OUTPUT_DIR}/conf" overwrite="true"/>
 		<if>
 			<equals arg1="${BUILD_ENV}" arg2="DEV"/>
 			<then>

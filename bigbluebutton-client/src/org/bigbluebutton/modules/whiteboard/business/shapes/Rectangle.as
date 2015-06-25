@@ -56,12 +56,12 @@ package org.bigbluebutton.modules.whiteboard.business.shapes
         }
 
         
-        override public function draw(a:Annotation, parentWidth:Number, parentHeight:Number):void {
+        override public function draw(a:Annotation, parentWidth:Number, parentHeight:Number, zoom:Number):void {
 //            LogUtil.debug("Drawing RECTANGLE");
             var ao:Object = a.annotation;
             if (!ao.fill)
-                this.graphics.lineStyle(ao.thickness, ao.color, ao.transparency ? 0.6 : 1.0);
-            else this.graphics.lineStyle(ao.thickness, ao.color);
+                this.graphics.lineStyle(ao.thickness * zoom, ao.color, ao.transparency ? 0.6 : 1.0);
+            else this.graphics.lineStyle(ao.thickness * zoom, ao.color);
             
             var arrayEnd:Number = (ao.points as Array).length;
             var startX:Number = denormalize((ao.points as Array)[0], parentWidth);
@@ -72,15 +72,30 @@ package org.bigbluebutton.modules.whiteboard.business.shapes
             if (ao.fill) this.graphics.beginFill(ao.fillColor, ao.transparency ? 0.6 : 1.0);
 			
 			if (ao.square) {
-				this.graphics.drawRect(startX, startY, width, width);
+			//calculate what how to draw square in different directions
+            //from starting point	
+                if(height < 0){
+                    if(width<0)
+                        this.graphics.drawRect(startX, startY, width, width);
+                    else
+                        this.graphics.drawRect(startX, startY, width, -width);
+                }
+                else{
+                    if(width<0)
+                        this.graphics.drawRect(startX, startY, width, -width);
+                    else
+                        this.graphics.drawRect(startX, startY, width, width);
+                }
+
+
 			} else {
 				this.graphics.drawRect(startX, startY, width, height);
 			}
             
         }
         
-        override public function redraw(a:Annotation, parentWidth:Number, parentHeight:Number):void {
-            draw(a, parentWidth, parentHeight);
+        override public function redraw(a:Annotation, parentWidth:Number, parentHeight:Number, zoom:Number):void {
+            draw(a, parentWidth, parentHeight, zoom);
         }
 	}
 }

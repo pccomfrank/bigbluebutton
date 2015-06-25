@@ -1,7 +1,7 @@
 /**
 * BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
-* 
-* Copyright (c) 2012 BigBlueButton Inc. and by respective authors (see below).
+*
+* Copyright (c) 2014 BigBlueButton Inc. and by respective authors (see below).
 *
 * This program is free software; you can redistribute it and/or modify it under the
 * terms of the GNU Lesser General Public License as published by the Free Software
@@ -30,8 +30,6 @@ import org.bigbluebutton.presentation.ThumbnailCreator;
 import org.bigbluebutton.presentation.UploadedPresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mysql.jdbc.log.LogUtils;
 
 public class ThumbnailCreatorImp implements ThumbnailCreator {
 	private static Logger log = LoggerFactory.getLogger(ThumbnailCreatorImp.class);
@@ -71,7 +69,6 @@ public class ThumbnailCreatorImp implements ThumbnailCreator {
 	 	String source = pres.getUploadedFile().getAbsolutePath();
 	 	String dest;
 	 	String COMMAND = "";
-	 	
 	 	if(SupportedFileTypes.isImageFile(pres.getFileType())){
 	 		dest = thumbsDir.getAbsolutePath() + File.separator + TEMP_THUMB_NAME + ".png";
 	 		COMMAND = IMAGEMAGICK_DIR + "/convert -thumbnail 150x150 " + source + " " + dest;
@@ -79,22 +76,22 @@ public class ThumbnailCreatorImp implements ThumbnailCreator {
 	 		dest = thumbsDir.getAbsolutePath() + File.separator + "thumb-";
 	 		COMMAND = IMAGEMAGICK_DIR + "/gs -q -sDEVICE=pngalpha -dBATCH -dNOPAUSE -dNOPROMPT -dDOINTERPOLATE -dPDFFitPage -r16 -sOutputFile=" + dest +"%d.png " + source;
 	 	}
-	 	
+
 	 	boolean done = new ExternalProcessExecutor().exec(COMMAND, 60000);
-	 	
+
 	 	if (done) {
 	 		return true;
-	 	} else {			
-			log.warn("Failed to create thumbnails: " + COMMAND);	 		
+	 	} else {
+			log.warn("Failed to create thumbnails: " + COMMAND);
 	 	}
 
-		return false;		
+		return false;
 	}
-	
+
 	private File determineThumbnailDirectory(File presentationFile) {
 		return new File(presentationFile.getParent() + File.separatorChar + "thumbnails");
 	}
-	
+
 	private void renameThumbnails(File dir) {
 		/*
 		 * If more than 1 file, filename like 'temp-thumb-X.png' else filename is 'temp-thumb.png'
@@ -139,17 +136,17 @@ public class ThumbnailCreatorImp implements ThumbnailCreator {
 			}
 		}
 	}
-	
+
 	private void copyBlankThumbnail(File thumb) {
 		try {
 			FileUtils.copyFile(new File(BLANK_THUMBNAIL), thumb);
 		} catch (IOException e) {
 			log.error("IOException while copying blank thumbnail.");
-		}		
+		}
 	}
-	
-	private void cleanDirectory(File directory) {	
-		File[] files = directory.listFiles();				
+
+	private void cleanDirectory(File directory) {
+		File[] files = directory.listFiles();
 		for (int i = 0; i < files.length; i++) {
 			files[i].delete();
 		}

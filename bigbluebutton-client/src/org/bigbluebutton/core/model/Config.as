@@ -34,6 +34,12 @@ package org.bigbluebutton.core.model
 			help.url = config.help.@url;
 			return help;
 		}
+    
+    public function get javaTest():Object {
+      var javaTest:Object = new Object();
+      javaTest.url = config.javaTest.@url;
+      return javaTest;
+    }
 			
 		public function get locale():Object {
 			var v:Object = new Object();
@@ -77,9 +83,22 @@ package org.bigbluebutton.core.model
 			a.url = config.skinning.@url;
 			return a
 		}
-					
-		public function get layout():XML {
-			return new XML(config.layout.toXMLString());
+		
+		public function get browserVersions():XML {
+			return new XML(config.browserVersions.toXMLString());
+		}
+
+    public function get layout():XML {
+      return new XML(config.layout.toXMLString());
+    }
+    	
+		public function get meeting():XML {
+			return new XML(config.meeting.toXMLString());
+		}
+		
+		public function get lock():XML {
+			if(config.lock == null) return null;
+			return new XML(config.lock.toXMLString());
 		}
 			
 		public function isModulePresent(name:String):Boolean {

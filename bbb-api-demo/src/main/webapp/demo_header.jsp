@@ -20,4 +20,7 @@
 <a href="demo_openid.jsp">Login with Openid</a> &nbsp;&nbsp;
 
 <a href="demo11.jsp">Javascript API</a> &nbsp;&nbsp;
- 
+
+<a href="mobile.jsp">Mobile Demo</a> &nbsp;&nbsp;
+
+<a href="demoHTML5.jsp">HTML5 Client Demo</a> &nbsp;&nbsp;

@@ -1,7 +1,7 @@
 /**
 * BigBlueButton open source conferencing system - http://www.bigbluebutton.org/
 *
-* Copyright (c) 2012 BigBlueButton Inc. and by respective authors (see below).
+* Copyright (c) 2014 BigBlueButton Inc. and by respective authors (see below).
 *
 * This program is free software; you can redistribute it and/or modify it under the
 * terms of the GNU Lesser General Public License as published by the Free Software
@@ -33,12 +33,13 @@ class PresentationService {
 	def testPresentationName
 	def testUploadedPresentation
 	def defaultUploadedPresentation
-	
-    def deletePresentation = {conf, room, filename ->
+	def presentationBaseUrl
+
+  def deletePresentation = {conf, room, filename ->
     		def directory = new File(roomDirectory(conf, room).absolutePath + File.separatorChar + filename)
-    		deleteDirectory(directory) 
+    		deleteDirectory(directory)
 	}
-	
+
 	def deleteDirectory = {directory ->
 		log.debug "delete = ${directory}"
 		/**
@@ -46,7 +47,7 @@ class PresentationService {
 		 * We need to delete files inside a directory before a
 		 * directory can be deleted.
 		**/
-		File[] files = directory.listFiles();				
+		File[] files = directory.listFiles();
 		for (int i = 0; i < files.length; i++) {
 			if (files[i].isDirectory()) {
 				deleteDirectory(files[i])
@@ -55,9 +56,9 @@ class PresentationService {
 			}
 		}
 		// Now that the directory is empty. Delete it.
-		directory.delete()	
+		directory.delete()
 	}
-	
+
 	def listPresentations = {conf, room ->
 		def presentationsList = []
 		def directory = roomDirectory(conf, room)
@@ -68,48 +69,48 @@ class PresentationService {
 				if( file.isDirectory() )
 					presentationsList.add( file.name )
 			}
-		}	
+		}
 		return presentationsList
 	}
-	
-	public File uploadedPresentationDirectory(String conf, String room, String presentation_name) {
-		File dir = new File(roomDirectory(conf, room).absolutePath + File.separatorChar + presentation_name)
-		println "Uploaded presentation ${presentation_name} for conf ${conf} and room ${room} to dir ${dir.absolutePath}"
 
-		/* If the presentation name already exist, delete it. We should provide a check later on to notify user
-			that there is already a presentation with that name. */
-		if (dir.exists()) deleteDirectory(dir)		
-		dir.mkdirs()
+  def getPresentationDir = {
+    return presentationDir
+  }
 
-		assert dir.exists()
-		return dir
-	}
-	
-	def processUploadedPresentation = {uploadedPres ->	
-		// Run conversion on another thread.
-		new Timer().runAfter(1000) 
-		{
-			documentConversionService.processDocument(uploadedPres)
-		}
-	}
- 	
+    def processUploadedPresentation = {uploadedPres ->
+        // Run conversion on another thread.
+        Timer t = new Timer(uploadedPres.getName(), false)
+
+        t.runAfter(1000) {
+            try {
+                documentConversionService.processDocument(uploadedPres)
+            } finally {
+            t.cancel()
+            }
+        }
+    }
+
 	def showSlide(String conf, String room, String presentationName, String id) {
 		new File(roomDirectory(conf, room).absolutePath + File.separatorChar + presentationName + File.separatorChar + "slide-${id}.swf")
 	}
-	
+
+	def showPngImage(String conf, String room, String presentationName, String id) {
+		new File(roomDirectory(conf, room).absolutePath + File.separatorChar + presentationName + File.separatorChar + "pngs" + File.separatorChar + "slide${id}.png")
+	}
+
 	def showPresentation = {conf, room, filename ->
 		new File(roomDirectory(conf, room).absolutePath + File.separatorChar + filename + File.separatorChar + "slides.swf")
 	}
-	
+
 	def showThumbnail = {conf, room, presentationName, thumb ->
 		println "Show thumbnails request for $presentationName $thumb"
 		def thumbFile = roomDirectory(conf, room).absolutePath + File.separatorChar + presentationName + File.separatorChar +
 					"thumbnails" + File.separatorChar + "thumb-${thumb}.png"
 		log.debug "showing $thumbFile"
-		
+
 		new File(thumbFile)
 	}
-	
+
 	def showTextfile = {conf, room, presentationName, textfile ->
 		println "Show textfiles request for $presentationName $textfile"
 		def txt = roomDirectory(conf, room).absolutePath + File.separatorChar + presentationName + File.separatorChar +
@@ -118,21 +119,26 @@ class PresentationService {
 		
 		new File(txt)
 	}
-	
+
 	def numberOfThumbnails = {conf, room, name ->
 		def thumbDir = new File(roomDirectory(conf, room).absolutePath + File.separatorChar + name + File.separatorChar + "thumbnails")
 		thumbDir.listFiles().length
 	}
-	
+
+	def numberOfPngs = {conf, room, name ->
+		def PngsDir = new File(roomDirectory(conf, room).absolutePath + File.separatorChar + name + File.separatorChar + "pngs")
+		PngsDir.listFiles().length
+	}
+
 	def numberOfTextfiles = {conf, room, name ->
 		log.debug roomDirectory(conf, room).absolutePath + File.separatorChar + name + File.separatorChar + "textfiles"
 		def textfilesDir = new File(roomDirectory(conf, room).absolutePath + File.separatorChar + name + File.separatorChar + "textfiles")
 		textfilesDir.listFiles().length
 	}
-	
-	def roomDirectory = {conf, room ->
-		return new File(presentationDir + File.separatorChar + conf + File.separatorChar + room)
-	}
+
+  def roomDirectory = {conf, room ->
+      return new File(presentationDir + File.separatorChar + conf + File.separatorChar + room)
+  }
 
 	def testConversionProcess() {
 		File presDir = new File(roomDirectory(testConferenceMock, testRoomMock).absolutePath + File.separatorChar + testPresentationName)
@@ -155,8 +161,7 @@ class PresentationService {
 		}
 		
 	}
-	
-}	
+}
 
 /*** Helper classes **/
 import java.io.FilenameFilter;

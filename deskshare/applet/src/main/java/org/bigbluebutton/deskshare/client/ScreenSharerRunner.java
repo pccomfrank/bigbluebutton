@@ -63,7 +63,7 @@ public class ScreenSharerRunner {
 		blockManager = new BlockManager();		
 		blockManager.initialize(screenDim, tileDim, ssi.useSVC2);
 		
-		sender = new NetworkStreamSender(blockManager, ssi.host, ssi.port, ssi.room, screenDim, tileDim, ssi.httpTunnel, ssi.useSVC2);
+		sender = new NetworkStreamSender(blockManager, ssi.host, ssi.port , ssi.useTLS, ssi.room, screenDim, tileDim, ssi.httpTunnel, ssi.useSVC2);
 	}
 	
 	public void startSharing() {	
@@ -203,7 +203,7 @@ public class ScreenSharerRunner {
 		System.out.println("-----------------------------------------------------------------------");
 		System.out.println(LICENSE_HEADER);
 		System.out.println("-----------------------------------------------------------------------\n\n");
-		System.out.println("Desktop Sharing v0.8");
+		System.out.println("Desktop Sharing v0.9.0");
 		System.out.println("Start");
 		System.out.println("Connecting to " + ssi.host + ":" + ssi.port + " room " + ssi.room);
 		System.out.println("Sharing " + ssi.captureWidth + "x" + ssi.captureHeight + " at " + ssi.x + "," + ssi.y);

@@ -25,12 +25,6 @@ require 'nokogiri'
 
 module BigBlueButton
   class Presentation
-    OPTIONS = "-sDEVICE=pdfwrite -dNOPAUSE -dQUIET -dBATCH -dUseCropBox"
-    FIRSTPAGE = "-dFirstPage"
-    LASTPAGE = "-dLastPage"
-    NO_PDF_MARK_WORKAROUND = "/etc/bigbluebutton/nopdfmark.ps"
-    OUTPUTFILE = "-sOutputFile"
-
     # Get the presentations.
     def self.get_presentations(events_xml)
       BigBlueButton.logger.info("Task: Getting presentations from events")      
@@ -48,28 +42,44 @@ module BigBlueButton
       Dir.glob("#{presentation_dir}/*.swf").size
     end
 
-    # Extract a page from the pdf file.    
+    # Extract a page from the pdf file.
     def self.extract_page_from_pdf(page_num, pdf_presentation, pdf_out)
-        BigBlueButton.logger.info("Task: Extracting a page from pdf file")      
-        temp_out = "/tmp/#{File.basename(pdf_out)}"
-        command = "ghostscript #{OPTIONS} #{FIRSTPAGE}=#{page_num} #{LASTPAGE}=#{page_num} #{OUTPUTFILE}=#{temp_out} #{NO_PDF_MARK_WORKAROUND} #{pdf_presentation}"
+      BigBlueButton.logger.info("Task: Extracting a page from pdf file")
+      temp_out = "#{File.dirname(pdf_out)}/temp-#{File.basename(pdf_out)}"
+      command = "pdfseparate -f #{page_num} -l #{page_num} #{pdf_presentation} #{temp_out}"
+      BigBlueButton.execute(command)
+      FileUtils.mv(temp_out, pdf_out)
+    end
+
+    # Extract a page from a pdf file as a png image
+    def self.extract_png_page_from_pdf(page_num, pdf_presentation, png_out, resize = '800x600')
+      BigBlueButton.logger.info("Task: Extracting a page from pdf file as png image")
+      temp_out = "#{File.dirname(png_out)}/temp-#{File.basename(png_out, '.png')}"
+      command = "pdftocairo -png -f #{page_num} -l #{page_num} -r 300 -singlefile #{pdf_presentation} #{temp_out}"
+      status = BigBlueButton.execute(command, false)
+      temp_out += ".png"
+      if status.success? and File.exist?(temp_out)
+        # Resize to the requested size
+        command = "convert #{temp_out} -resize #{resize} -quality 90 +dither -depth 8 -colors 256 #{png_out}"
         BigBlueButton.execute(command)
-        FileUtils.mv(temp_out,pdf_out)
- #       Process.wait
+      else
+        # If page extraction failed, generate a blank white image
+        command = "convert -size #{resize} xc:white -quality 90 +dither -depth 8 -colors 256 #{png_out}"
+        BigBlueButton.execute(command)
+      end
+    ensure
+      FileUtils.rm_f(temp_out)
     end
     
     # Convert a pdf page to a png.
     def self.convert_pdf_to_png(pdf_page, png_out)
-        BigBlueButton.logger.info("Task: Converting .pdf to .png")      
-        command = "convert -density 300x300 -resize 800x600 -quality 90 +dither -depth 8 -colors 256 #{pdf_page} #{png_out}"
-        BigBlueButton.execute(command)
-#        Process.wait  
+      self.extract_png_page_from_pdf(1, pdf_page, png_out, '800x600')
     end
 
     #Convert an image to a png	
-    def self.convert_image_to_png(image,png_image)
+    def self.convert_image_to_png(image, png_image, resize = '800x600')
         BigBlueButton.logger.info("Task: Converting image to .png")      
-        command="convert -resize 800x600 #{image} #{png_image}"
+        command = "convert #{image} -resize #{resize} -background white -flatten #{png_image}"
         BigBlueButton.execute(command)
     end
 

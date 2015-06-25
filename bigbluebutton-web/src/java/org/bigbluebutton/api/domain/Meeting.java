@@ -27,14 +27,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.bigbluebutton.api.MeetingService;
 
 public class Meeting {
-	private static final int MILLIS_IN_A_MINUTE = 60000;
+	private static Logger log = LoggerFactory.getLogger(Meeting.class);
+	
+	private static final long MILLIS_IN_A_MINUTE = 60000;
 	
 	private String name;
 	private String extMeetingId;
 	private String intMeetingId;	
-	private int duration = 0;	 
+	private long duration = 0;	 
 	private long createdTime = 0;
 	private long startTime = 0;
 	private long endTime = 0;
@@ -44,17 +49,22 @@ public class Meeting {
 	private String moderatorPass;
 	private String viewerPass;
 	private String welcomeMsg;
+	private String modOnlyMessage;
 	private String logoutUrl;
 	private int maxUsers;
 	private boolean record;
+	private boolean autoStartRecording = false;
+	private boolean allowStartStopRecording = false;
 	private String dialNumber;
 	private String defaultAvatarURL;
 	private String defaultConfigToken;
-	
+	private boolean userHasJoined = false;
 	private Map<String, String> metadata;
 	private Map<String, Object> userCustomData;
 	private final ConcurrentMap<String, User> users; 
 	private final ConcurrentMap<String, Config> configs;
+	
+	private long lastUserLeftOn = 0;
 	
 	public Meeting(Builder builder) {
 		name = builder.name;
@@ -66,14 +76,17 @@ public class Meeting {
 		logoutUrl = builder.logoutUrl;
 		defaultAvatarURL = builder.defaultAvatarURL;
 		record = builder.record;
-    	duration = builder.duration;
-    	webVoice = builder.webVoice;
-    	telVoice = builder.telVoice;
-    	welcomeMsg = builder.welcomeMsg;
-    	dialNumber = builder.dialNumber;
-    	metadata = builder.metadata;
-    	createdTime = builder.createdTime;
-    	userCustomData = new HashMap<String, Object>();
+		autoStartRecording = builder.autoStartRecording;
+		allowStartStopRecording = builder.allowStartStopRecording;
+   	duration = builder.duration;
+   	webVoice = builder.webVoice;
+   	telVoice = builder.telVoice;
+   	welcomeMsg = builder.welcomeMsg;
+   	dialNumber = builder.dialNumber;
+   	metadata = builder.metadata;
+   	createdTime = builder.createdTime;
+   	userCustomData = new HashMap<String, Object>();
+
 		users = new ConcurrentHashMap<String, User>();
 		
 		configs = new ConcurrentHashMap<String, Config>();
@@ -138,6 +151,14 @@ public class Meeting {
 		return endTime;
 	}
 	
+	public void setModeratorOnlyMessage(String msg) {
+		modOnlyMessage = msg;
+	}
+	
+	public String getModeratorOnlyMessage() {
+		return modOnlyMessage;
+	}
+	
 	public void setEndTime(long t) {
 		endTime = t;
 	}
@@ -158,17 +179,10 @@ public class Meeting {
 		this.forciblyEnded = forciblyEnded;
 	}
 
-	/**
-	 * Get the external meeting id.
-	 * @return external meeting id.
-	 */
 	public String getExternalId() {
 		return extMeetingId;
 	}
 	
-	/**
-	 * Get the internal meeting id;
-	 */
 	public String getInternalId() {
 		return intMeetingId;
 	}
@@ -209,12 +223,27 @@ public class Meeting {
 		return record;
 	}
 	
-	public void userJoined(User user){
+	public boolean getAutoStartRecording() {
+		return autoStartRecording;
+	}
+	
+	public boolean getAllowStartStopRecording() {
+		return allowStartStopRecording;
+	}
+	
+	public boolean hasUserJoined() {
+		return userHasJoined;
+	}
+	
+	public void userJoined(User user) {
+		userHasJoined = true;
 		this.users.put(user.getInternalUserId(), user);
 	}
 	
 	public User userLeft(String userid){
-		return users.remove(userid);		
+		User u = (User) users.remove(userid);	
+		if (users.isEmpty()) lastUserLeftOn = System.currentTimeMillis();
+		return u;
 	}
 	
 	public User getUserById(String id){
@@ -238,18 +267,36 @@ public class Meeting {
 		return dialNumber;
 	}
 	
-	public boolean wasNeverStarted(int expiry) {
-		return (!hasStarted() && !hasEnded() && nobodyJoined(expiry));
+	public boolean wasNeverJoined(int expiry) {
+		log.debug("WasNeverJoined - hasStarted=[" + hasStarted() + "] && !hasEnded()=[" + !hasEnded() + "] && nobodyJoined(" + expiry + ")=" + nobodyJoined(expiry));
+		return (hasStarted() && !hasEnded() && nobodyJoined(expiry));
+	}
+	
+	private boolean meetingInfinite() {
+		/* Meeting stays runs infinitely */
+	  return 	duration == 0;
 	}
 	
 	private boolean nobodyJoined(int expiry) {
 		if (expiry == 0) return false; /* Meeting stays created infinitely */
-		return (System.currentTimeMillis() - createdTime) >  (expiry * MILLIS_IN_A_MINUTE);
+		
+		long now = System.currentTimeMillis();
+		log.debug("nobodyJoined - !userHasJoined=[" + !userHasJoined + "] && (now - createdTime)=[" + (now - createdTime) + "] > (expiry * MILLIS_IN_A_MINUTE)=" + (expiry * MILLIS_IN_A_MINUTE));
+
+		return (!userHasJoined && (now - createdTime) >  (expiry * MILLIS_IN_A_MINUTE));
+	}
+
+	private boolean hasBeenEmptyFor(int expiry) {
+		long now = System.currentTimeMillis();
+		return (now - lastUserLeftOn > (expiry * MILLIS_IN_A_MINUTE));
+	}
+	
+	private boolean isEmpty() {
+		return users.isEmpty();
 	}
 	
 	public boolean hasExpired(int expiry) {
-		System.out.println("meeting-id=" + intMeetingId + " started=" + hasStarted() + " ended=" + hasEnded() + " notRunning=" + !isRunning() + " expired=" + didExpire(expiry));
-		return (hasStarted() && hasEnded() && !isRunning() && didExpire(expiry));
+		return (hasStarted() && userHasJoined && isEmpty() && hasBeenEmptyFor(expiry));
 	}
 	
 	public boolean hasExceededDuration() {
@@ -257,8 +304,9 @@ public class Meeting {
 	}
 
 	private boolean pastDuration() {
-		if (duration == 0) return false; /* Meeting runs infinitely */
-		return (System.currentTimeMillis() - startTime > (duration * MILLIS_IN_A_MINUTE));
+		if (meetingInfinite()) return false; 
+		long now = System.currentTimeMillis();
+		return (now - startTime > (duration * MILLIS_IN_A_MINUTE));
 	}
 	
 	private boolean hasStarted() {
@@ -269,18 +317,12 @@ public class Meeting {
 		return endTime > 0;
 	}
 	
-	private boolean didExpire(int expiry) {
-		long now = System.currentTimeMillis();
-		System.out.println("Expiry " + now + " endTime=" + endTime + "expiry=" + (expiry * MILLIS_IN_A_MINUTE));
-		return (System.currentTimeMillis() - endTime > (expiry * MILLIS_IN_A_MINUTE));
-	}
-	
 	public void addUserCustomData(String userID, Map<String, String> data) {
 		userCustomData.put(userID, data);
 	}
 	
-	public Map getUserCustomData(String userID){
-		return (Map) userCustomData.get(userID);
+	public Map<String, Object> getUserCustomData(String userID){
+		return (Map<String, Object>) userCustomData.get(userID);
 	}
 	
 	/***
@@ -293,6 +335,8 @@ public class Meeting {
     	private String internalId;   	
     	private int maxUsers;
     	private boolean record;
+    	private boolean autoStartRecording;
+    	private boolean allowStartStopRecording;
     	private String moderatorPass;
     	private String viewerPass;
     	private int duration;
@@ -330,7 +374,17 @@ public class Meeting {
     		this.record = record;
     		return this;
     	}
+    	
+    	public Builder withAutoStartRecording(boolean start) {
+    		this.autoStartRecording = start;
+    		return this;
+    	}
 
+    	public Builder withAllowStartStopRecording(boolean allow) {
+    		this.allowStartStopRecording = allow;
+    		return this;
+    	}
+    	
     	public Builder withWebVoice(String w) {
     		this.webVoice = w;
     		return this;

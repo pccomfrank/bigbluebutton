@@ -80,6 +80,7 @@ public class DeskshareClient {
     public static class NewBuilder {
        	private String host = "localhost";
        	private int port = 9123;
+		private boolean useTLS = false;
        	private String room = "default-room";
        	private int captureWidth = 0;
        	private int captureHeight = 0;
@@ -105,6 +106,11 @@ public class DeskshareClient {
 	    	return this;
 	    }
     	
+		public NewBuilder useTLS(boolean useTLS) {
+			this.useTLS = useTLS;
+			return this;
+		}
+		
     	public NewBuilder room(String room) {
     		this.room = room;
     		return this;
@@ -187,6 +193,7 @@ public class DeskshareClient {
     		ScreenShareInfo ssi = new ScreenShareInfo();
     		ssi.host = host;
     		ssi.port = port;
+			ssi.useTLS = useTLS;
     		ssi.room = room;
     		ssi.captureWidth = captureWidth;
     		ssi.captureHeight = captureHeight;
@@ -215,21 +222,11 @@ public class DeskshareClient {
         			y = ((int) fullScreenSize.getHeight() - captureHeight) / 2;    
         			System.out.println("Info[" + captureWidth + "," + captureHeight + "][" + x + "," + y +"]"
         					+ "[" + fullScreenSize.getWidth() + "," + fullScreenSize.getHeight() + "]");
-        			calculateDimensionsToMaintainAspectRatio();
+        			scaleWidth = captureWidth;
+        			scaleHeight = captureHeight; 
     		}
     	}
-    	
-    	private void calculateDimensionsToMaintainAspectRatio() {
-    		if (scaleWidth > 0 && scaleHeight > 0) {
-//    			if (aspectRatio) {
-//    				recalculateScaleDimensionsToMaintainAspectRatio();
-//    			}
-    		} else {
-    			scaleWidth = captureWidth;
-    			scaleHeight = captureHeight;
-    		}    		
-    	}
-    	
+    		
     	private void setupFullScreen() {
     		java.awt.Dimension fullScreenSize = Toolkit.getDefaultToolkit().getScreenSize();
     		captureWidth = (int) fullScreenSize.getWidth();
@@ -246,12 +243,18 @@ public class DeskshareClient {
 		
 			System.out.println("Check for scaling[" + captureWidth + "," + captureHeight +"][" + scaleWidth + "," + scaleHeight + "]");
 
-			if (scaleWidth > 1280) {   
-				scaleWidth = 1280;
-				double ratio = (double)captureHeight/(double)captureWidth;
-				scaleHeight = (int)((double)scaleWidth * ratio);
-				System.out.println("Scaling[" + captureWidth + "," + captureHeight +"][" + scaleWidth + "," + scaleHeight + "]");
+			if (scale == 1) {
+				scaleWidth = captureWidth;
+				scaleHeight = captureHeight;
+			} else {
+				if (scaleWidth > 1280) {   
+					scaleWidth = 1280;
+					double ratio = (double)captureHeight/(double)captureWidth;
+					scaleHeight = (int)((double)scaleWidth * ratio);
+					System.out.println("Scaling[" + captureWidth + "," + captureHeight +"][" + scaleWidth + "," + scaleHeight + "]");
+				}				
 			}
+
     	}
     	  	
     }

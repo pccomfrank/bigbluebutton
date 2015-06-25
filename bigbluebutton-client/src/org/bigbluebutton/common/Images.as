@@ -21,7 +21,10 @@ package org.bigbluebutton.common
 	[Bindable]
 	public class Images
 	{
-	
+
+    [Embed(source="assets/images/page_link.png")]
+    public var page_link:Class;
+    
 	[Embed(source="assets/images/users_settings.png")]
 	public var users_settings:Class;
 	
@@ -303,5 +306,11 @@ package org.bigbluebutton.common
 		
 		[Embed(source="assets/images/grid_icon.png")]
 		public var grid_icon:Class;	
+		
+		[Embed(source="assets/images/moderator_white.png")]
+		public var moderator_white:Class;
+		
+		[Embed(source="assets/images/presenter_white.png")]
+		public var presenter_white:Class;
 	}
 }

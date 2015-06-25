@@ -76,10 +76,10 @@ package org.bigbluebutton.core
       return false;
     }
     
-    public static function getWebcamStream(userID:String):String {
+    public static function getWebcamStream(userID:String):Array {
       var u:BBBUser = getUser(userID);
       if (u != null && u.hasStream) {
-        return u.streamName;
+        return u.streamNames;
       }
       
       return null;
@@ -120,11 +120,7 @@ package org.bigbluebutton.core
     public static function amIPresenter():Boolean {
       return UserManager.getInstance().getConference().amIPresenter;
     }
-    
-    public static function getVoiceUser(voiceUserID:Number):BBBUser {
-      return UserManager.getInstance().getConference().getVoiceUser(voiceUserID);
-    }
-    
+        
     public static function hasUser(userID:String):Boolean {
       return UserManager.getInstance().getConference().hasUser(userID);
     }
@@ -160,7 +156,8 @@ package org.bigbluebutton.core
         return user.externUserID;
       }
       LogUtil.warn("Could not find externUserID for userID [" + userID + "]");
-      return null;
+      trace("Could not find externUserID for userID [" + userID + "]");
+      return "";
     }
     
     public static function externalUserIDToInternalUserID(externUserID:String):String {
@@ -180,6 +177,27 @@ package org.bigbluebutton.core
       }
       return null;
     }
+    
+    public static function getUserData():Object {
+      var userData:Object = new Object();
+      userData.meetingId = getInternalMeetingID();
+      userData.externalMeetingId = getExternalMeetingID();
+      userData.meetingName = UserManager.getInstance().getConference().meetingName;
+      userData.userId = getMyUserID();
+      userData.userName = getMyUsername();
+      
+      return userData;
+    }
+	
+	public static function isAnyoneLocked():Boolean {
+		var users:ArrayCollection = UserManager.getInstance().getConference().users;
+		for(var i:uint = 0; i<users.length; i++) {
+			var user:BBBUser = users.getItemAt(i) as BBBUser;
+			if(user.userLocked)
+				return true;
+		}
+		return false;
+	}
     
   }
 }

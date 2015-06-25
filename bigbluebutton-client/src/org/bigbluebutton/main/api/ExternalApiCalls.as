@@ -18,8 +18,7 @@
  */
 package org.bigbluebutton.main.api
 {
-  import flash.external.ExternalInterface;
-  
+  import flash.external.ExternalInterface;  
   import org.bigbluebutton.common.LogUtil;
   import org.bigbluebutton.common.Role;
   import org.bigbluebutton.core.EventConstants;
@@ -41,11 +40,21 @@ package org.bigbluebutton.main.api
   import org.bigbluebutton.main.model.users.events.BroadcastStartedEvent;
   import org.bigbluebutton.main.model.users.events.BroadcastStoppedEvent;
   import org.bigbluebutton.main.model.users.events.StreamStartedEvent;
-  import org.bigbluebutton.modules.present.events.QueryListOfPresentationsReplyEvent;
+  import org.bigbluebutton.modules.present.events.ConversionCompletedEvent;
+  import org.bigbluebutton.modules.present.events.ConversionPageCountError;
+  import org.bigbluebutton.modules.present.events.ConversionPageCountMaxed;
+  import org.bigbluebutton.modules.present.events.ConversionSupportedDocEvent;
+  import org.bigbluebutton.modules.present.events.ConversionUnsupportedDocEvent;
+  import org.bigbluebutton.modules.present.events.ConversionUpdateEvent;
+  import org.bigbluebutton.modules.present.events.CreatingThumbnailsEvent;
+  import org.bigbluebutton.modules.present.events.GetListOfPresentationsReply;
+  import org.bigbluebutton.modules.present.events.OfficeDocConvertFailedEvent;
+  import org.bigbluebutton.modules.present.events.OfficeDocConvertSuccessEvent;
   import org.bigbluebutton.modules.present.events.UploadEvent;
   import org.bigbluebutton.modules.videoconf.model.VideoConfOptions;
 
   public class ExternalApiCalls { 
+    private static const LOG:String = "ExternalApiCalls - ";
     
     public function handleOpenExternalUploadWindow(event:UploadEvent):void {
       var payload:Object = new Object();
@@ -56,6 +65,7 @@ package org.bigbluebutton.main.api
     
     
     public function handleUserKickedOutEvent(event:LogoutEvent):void {
+      trace(LOG + " handleUserKickedOutEvent");
       var payload:Object = new Object();
       payload.userID = UsersUtil.internalUserIDToExternalUserID(event.userID);
       payload.eventName = EventConstants.USER_KICKED_OUT;
@@ -63,11 +73,12 @@ package org.bigbluebutton.main.api
     }
     
     public function handleIsUserPublishingCamRequest(event:IsUserPublishingCamRequest):void {
+      trace(LOG + " handleIsUserPublishingCamRequest");
       var payload:Object = new Object();
       var isUserPublishing:Boolean = false;
       
-      var streamName:String = UsersUtil.getWebcamStream(event.userID);
-      if (streamName != null) {
+      var streamNames:Array = UsersUtil.getWebcamStream(event.userID);
+      if (streamNames && streamNames.length > 0) {
         isUserPublishing = true; 
       }
       
@@ -78,11 +89,13 @@ package org.bigbluebutton.main.api
       var vidConf:VideoConfOptions = new VideoConfOptions();
       payload.uri = vidConf.uri + "/" + UsersUtil.getInternalMeetingID();
       payload.avatarURL = UsersUtil.getAvatarURL();
-      payload.streamName = streamName; 
+      payload.streamNames = streamNames;
       broadcastEvent(payload);
     }
     
     public function handleGetMyUserInfoRequest(event:GetMyUserInfoRequestEvent):void {
+      trace(LOG + " handleGetMyUserInfoRequest");
+      
       var payload:Object = new Object();
       payload.eventName = EventConstants.GET_MY_USER_INFO_REP;
       payload.myUserID = UsersUtil.internalUserIDToExternalUserID(UsersUtil.getMyUserID());
@@ -106,6 +119,7 @@ package org.bigbluebutton.main.api
     }    
     
     public function handleStreamStartedEvent(event:StreamStartedEvent):void {
+      trace(LOG + " handleStreamStartedEvent");
       var vidConf:VideoConfOptions = new VideoConfOptions();
       
       var payload:Object = new Object();
@@ -127,20 +141,18 @@ package org.bigbluebutton.main.api
     }
     
     public function handleBroadcastStartedEvent(event:BroadcastStartedEvent):void {
-      var vidConf:VideoConfOptions = new VideoConfOptions();
-      
       var payload:Object = new Object();
       payload.eventName = EventConstants.BROADCASTING_CAM_STARTED;
       payload.isPresenter = UsersUtil.amIPresenter();
       payload.streamName = event.stream;
       payload.isPublishing = event.camSettings.isPublishing;
       payload.camIndex = event.camSettings.camIndex;
-      payload.camWidth = event.camSettings.camWidth;
-      payload.camHeight = event.camSettings.camHeight;
-      payload.camKeyFrameInterval = vidConf.camKeyFrameInterval;
-      payload.camModeFps = vidConf.camModeFps;
-      payload.camQualityBandwidth = vidConf.camQualityBandwidth;
-      payload.camQualityPicture = vidConf.camQualityPicture;
+      payload.camWidth = event.camSettings.videoProfile.width;
+      payload.camHeight = event.camSettings.videoProfile.height;
+      payload.camKeyFrameInterval = event.camSettings.videoProfile.keyFrameInterval;
+      payload.camModeFps = event.camSettings.videoProfile.modeFps;
+      payload.camQualityBandwidth = event.camSettings.videoProfile.qualityBandwidth;
+      payload.camQualityPicture = event.camSettings.videoProfile.qualityPicture;
       payload.avatarURL = UsersUtil.getAvatarURL();
       
       broadcastEvent(payload);         
@@ -148,18 +160,17 @@ package org.bigbluebutton.main.api
     
     public function handleAmISharingCamQueryEvent(event:AmISharingWebcamQueryEvent):void {
       var camSettings:CameraSettingsVO = UsersUtil.amIPublishing();
-      var vidConf:VideoConfOptions = new VideoConfOptions();
       
       var payload:Object = new Object();
       payload.eventName = EventConstants.AM_I_SHARING_CAM_RESP;
       payload.isPublishing = camSettings.isPublishing;
       payload.camIndex = camSettings.camIndex;
-      payload.camWidth = camSettings.camWidth;
-      payload.camHeight = camSettings.camHeight;
-      payload.camKeyFrameInterval = vidConf.camKeyFrameInterval;
-      payload.camModeFps = vidConf.camModeFps;
-      payload.camQualityBandwidth = vidConf.camQualityBandwidth;
-      payload.camQualityPicture = vidConf.camQualityPicture;
+      payload.camWidth = camSettings.videoProfile.width;
+      payload.camHeight = camSettings.videoProfile.height;
+      payload.camKeyFrameInterval = camSettings.videoProfile.keyFrameInterval;
+      payload.camModeFps = camSettings.videoProfile.modeFps;
+      payload.camQualityBandwidth = camSettings.videoProfile.qualityBandwidth;
+      payload.camQualityPicture = camSettings.videoProfile.qualityPicture;
       payload.avatarURL = UsersUtil.getAvatarURL();
       
       broadcastEvent(payload);        
@@ -174,7 +185,7 @@ package org.bigbluebutton.main.api
     }
     
     public function handleSwitchToNewRoleEvent(event:SwitchedPresenterEvent):void {
-      trace("ExternalApiCalls:: Got NEW ROLE EVENT presenter = [" + event.amIPresenter + "]");
+      trace(LOG + "Got NEW ROLE EVENT presenter = [" + event.amIPresenter + "]");
       var payload:Object = new Object();
       payload.eventName = EventConstants.SWITCHED_PRESENTER;
       payload.amIPresenter = event.amIPresenter;
@@ -192,6 +203,7 @@ package org.bigbluebutton.main.api
     }
 
     public function handleStartPrivateChatEvent(event:CoreEvent):void {
+      trace(LOG + " handleStartPrivateChatEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.START_PRIVATE_CHAT;
       payload.chatWith = UsersUtil.internalUserIDToExternalUserID(event.message.chatWith);
@@ -206,46 +218,51 @@ package org.bigbluebutton.main.api
     }
 
     public function handleUserJoinedVoiceEvent(event:BBBEvent):void {
+      trace(LOG + " handleUserJoinedVoiceEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.USER_JOINED_VOICE;
       payload.userID = UsersUtil.internalUserIDToExternalUserID(event.payload.userID);
       
-      trace("ExternalApiCalls:: Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] has joined the voice conference.");
+      trace(LOG + "Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] has joined the voice conference.");
       
       broadcastEvent(payload);
     }
     
     public function handleUserVoiceMutedEvent(event:BBBEvent):void {
+      trace(LOG + " handleUserVoiceMutedEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.USER_MUTED_VOICE;
       payload.userID = UsersUtil.internalUserIDToExternalUserID(event.payload.userID);
       payload.muted = event.payload.muted;
       
-      trace("ExternalApiCalls:: Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] is now muted=[" + payload.muted + "]");
+      trace(LOG + "Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] is now muted=[" + payload.muted + "]");
       broadcastEvent(payload);
     }
     
-    public function handleUserVoiceLockedEvent(event:BBBEvent):void {
+    public function handleUserLockedEvent(event:BBBEvent):void {
+      trace(LOG + " handleUserLockedEvent");
       var payload:Object = new Object();
-      payload.eventName = EventConstants.USER_LOCKED_VOICE;
+      payload.eventName = EventConstants.USER_LOCKED;
       payload.userID = UsersUtil.internalUserIDToExternalUserID(event.payload.userID);
       payload.locked = event.payload.locked;
       
-      trace("ExternalApiCalls:: Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] is now locked=[" + payload.locked + "]");
+      trace(LOG + "Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] is now locked=[" + payload.locked + "]");
       broadcastEvent(payload);
     }
     
     public function handleUserVoiceLeftEvent(event:BBBEvent):void {
+      trace(LOG + " handleUserVoiceLeftEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.USER_LEFT_VOICE;
       payload.userID = UsersUtil.internalUserIDToExternalUserID(event.payload.userID);
       
-      trace("ExternalApiCalls:: Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] has left the voice conference.");
+      trace(LOG + "Notifying external API that [" + UsersUtil.getUserName(event.payload.userID) + "] has left the voice conference.");
       
       broadcastEvent(payload);
     }
             
     public function handleNewPublicChatEvent(event:CoreEvent):void {
+      trace(LOG + " handleNewPublicChatEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.NEW_PUBLIC_CHAT;
       payload.chatType = event.message.chatType;      
@@ -264,6 +281,7 @@ package org.bigbluebutton.main.api
     }
     
     public function handleNewPrivateChatEvent(event:CoreEvent):void {
+      trace(LOG + " handleNewPrivateChatEvent");
       var payload:Object = new Object();
       payload.eventName = EventConstants.NEW_PRIVATE_CHAT;
       payload.chatType = event.message.chatType;      
@@ -284,6 +302,7 @@ package org.bigbluebutton.main.api
     }
         
     public function handleUserJoinedEvent(event:UserJoinedEvent):void {
+      trace(LOG + " handleUserJoinedEvent");
       var payload:Object = new Object();
       var user:BBBUser = UserManager.getInstance().getConference().getUser(event.userID);
       
@@ -300,7 +319,7 @@ package org.bigbluebutton.main.api
     }    
 
     public function handleUserLeftEvent(event:UserLeftEvent):void {
-      trace("Got notification that user [" + event.userID + "] has left the meeting");
+      trace(LOG + "Got notification that user [" + event.userID + "] has left the meeting");
       
       var payload:Object = new Object();
       var user:BBBUser = UserManager.getInstance().getConference().getUser(event.userID);
@@ -319,65 +338,66 @@ package org.bigbluebutton.main.api
       broadcastEvent(payload);        
     }
 
-    public function handleOfficeDocConversionSuccess(event:UploadEvent):void{
+    public function handleOfficeDocConversionSuccess(event:OfficeDocConvertSuccessEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.OFFICE_DOC_CONVERSION_SUCCESS;
       broadcastEvent(payload);
     }
 
-    public function handleOfficeDocConversionFailed(event:UploadEvent):void{
+    public function handleOfficeDocConversionFailed(event:OfficeDocConvertFailedEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.OFFICE_DOC_CONVERSION_FAILED;
       broadcastEvent(payload);
     }
 
-    public function handleSupportedDocument(event:UploadEvent):void{
+    public function handleSupportedDocument(event:ConversionSupportedDocEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.SUPPORTED_DOCUMENT;
       broadcastEvent(payload);
     }
 
-    public function handleUnsupportedDocument(event:UploadEvent):void{
+    public function handleUnsupportedDocument(event:ConversionUnsupportedDocEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.UNSUPPORTED_DOCUMENT;
       broadcastEvent(payload);
     }
 
-    public function handlePageCountFailed(event:UploadEvent):void{
+    public function handlePageCountFailed(event:ConversionPageCountError):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.PAGE_COUNT_FAILED;
       broadcastEvent(payload);
     }
 
-    public function handleThumbnailsUpdate(event:UploadEvent):void{
+    public function handleThumbnailsUpdate(event:CreatingThumbnailsEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.THUMBNAILS_UPDATE;
       broadcastEvent(payload);
     }
 
-    public function handlePageCountExceeded(event:UploadEvent):void{
+    public function handlePageCountExceeded(event:ConversionPageCountMaxed):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.PAGE_COUNT_EXCEEDED;
-      payload.maximumSupportedNumberOfSlides = event.maximumSupportedNumberOfSlides;
+      payload.maximumSupportedNumberOfSlides = event.maxPages;
       broadcastEvent(payload);
     }
 
-    public function handleConvertSuccess(event:UploadEvent):void{
+    public function handleConvertSuccess(event:ConversionCompletedEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.CONVERT_SUCCESS;
-      payload.presentationName = event.presentationName;
+      payload.presentationName = event.presName;
+      payload.presentationId = event.presId;
       broadcastEvent(payload);
     }
 
-    public function handleConvertUpdate(event:UploadEvent):void{
+    public function handleConvertUpdate(event:ConversionUpdateEvent):void{
       var payload:Object = new Object();
       payload.eventName = EventConstants.CONVERT_UPDATE;
-      payload.totalSlides = event.totalSlides;
-      payload.completedSlides = event.completedSlides;
+      payload.totalSlides = event.totalPages;
+      payload.completedSlides = event.numPagesDone;
       broadcastEvent(payload);
     }
 
-    public function handleQueryListOfPresentationsReplyEvent(event:QueryListOfPresentationsReplyEvent):void {
+    public function handleGetListOfPresentationsReply(event:GetListOfPresentationsReply):void {
       var payload:Object = new Object();
       payload.eventName = EventConstants.QUERY_PRESENTATION_REPLY;
       payload.presentations = event.presentations;
